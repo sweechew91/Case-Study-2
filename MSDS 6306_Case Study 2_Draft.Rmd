@@ -1,0 +1,176 @@
+---
+title: "MSDS 6306_Case Study 2"
+author: "Swee K Chew, Mallory Hightower"
+date: "08/15/2018"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Part 1 
+### Regression (Lasso)
+
+```{r}
+bike_data <- read.csv("hour.csv", header = TRUE, sep = ",", stringsAsFactors = FALSE)
+bike_data_2011 <- bike_data[ which(bike_data$yr=='0'), ]
+bike_data_2012 <- bike_data[ which(bike_data$yr=='1'), ]
+aggregate(cnt ~ mnth, bike_data_2011, sum)
+aggregate(cnt ~ mnth, bike_data_2012, sum)
+
+sum(is.na(bike_data))
+library(ggplot2)
+library(reshape2)
+ggplot(data = melt(bike_data), mapping = aes(x = value)) + geom_histogram(bins = 20) + facet_wrap(~variable, scales = "free")
+
+library(glmnet)
+bike.glmnet <- cv.glmnet(as.matrix(bike_data[,3:12]), bike_data[,15], alpha=1)
+best.lambda <- bike.glmnet$lambda.min
+coef(bike.glmnet, s=best.lambda)
+lasso.pred <- predict(bike.glmnet, as.matrix(bike_data[,3:12]), s=best.lambda)
+lasso.rmse <- sqrt(mean((lasso.pred - bike_data[,15])^2))
+
+```
+
+## Part 2
+### Forcasting 2016 and 2017 bike rentals (by year & maybe by month)
+
+#### a. Extracting 2011 data from the website
+```{r}
+bike_2011 <- read.csv("2011-capitalbikeshare-tripdata.csv", header = TRUE, sep = ",", stringsAsFactors = FALSE)
+bike_2011$date <- as.Date(bike_2011$Start.date)
+#bike_2011$year <- strftime(bike_2011$date, "%Y")
+bike_2011$month <- strftime(bike_2011$date, "%m")
+
+```
+
+#### b. Extracting 2012-2017 data from the website
+```{r}
+bike_2012Q1 <- read.csv("2012Q1-capitalbikeshare-tripdata.csv", header = TRUE, sep = ",", stringsAsFactors = FALSE)
+bike_2012Q2 <- read.csv("2012Q2-capitalbikeshare-tripdata.csv", header = TRUE, sep = ",", stringsAsFactors = FALSE)
+bike_2012Q3 <- read.csv("2012Q3-capitalbikeshare-tripdata.csv", header = TRUE, sep = ",", stringsAsFactors = FALSE)
+bike_2012Q4 <- read.csv("2012Q4-capitalbikeshare-tripdata.csv", header = TRUE, sep = ",", stringsAsFactors = FALSE)
+bike_2012 <- rbind(bike_2012Q1, bike_2012Q2, bike_2012Q3, bike_2012Q4)
+
+bike_2013Q1 <- read.csv("2013Q1-capitalbikeshare-tripdata.csv", header = TRUE, sep = ",", stringsAsFactors = FALSE)
+bike_2013Q2 <- read.csv("2013Q2-capitalbikeshare-tripdata.csv", header = TRUE, sep = ",", stringsAsFactors = FALSE)
+bike_2013Q3 <- read.csv("2013Q3-capitalbikeshare-tripdata.csv", header = TRUE, sep = ",", stringsAsFactors = FALSE)
+bike_2013Q4 <- read.csv("2013Q4-capitalbikeshare-tripdata.csv", header = TRUE, sep = ",", stringsAsFactors = FALSE)
+bike_2013 <- rbind(bike_2013Q1, bike_2013Q2, bike_2013Q3, bike_2013Q4)
+
+bike_2014Q1 <- read.csv("2014Q1-capitalbikeshare-tripdata.csv", header = TRUE, sep = ",", stringsAsFactors = FALSE)
+bike_2014Q2 <- read.csv("2014Q2-capitalbikeshare-tripdata.csv", header = TRUE, sep = ",", stringsAsFactors = FALSE)
+bike_2014Q3 <- read.csv("2014Q3-capitalbikeshare-tripdata.csv", header = TRUE, sep = ",", stringsAsFactors = FALSE)
+bike_2014Q4 <- read.csv("2014Q4-capitalbikeshare-tripdata.csv", header = TRUE, sep = ",", stringsAsFactors = FALSE)
+bike_2014 <- rbind(bike_2014Q1, bike_2014Q2, bike_2014Q3, bike_2014Q4)
+
+bike_2015Q1 <- read.csv("2015Q1-capitalbikeshare-tripdata.csv", header = TRUE, sep = ",", stringsAsFactors = FALSE)
+bike_2015Q2 <- read.csv("2015Q2-capitalbikeshare-tripdata.csv", header = TRUE, sep = ",", stringsAsFactors = FALSE)
+bike_2015Q3 <- read.csv("2015Q3-capitalbikeshare-tripdata.csv", header = TRUE, sep = ",", stringsAsFactors = FALSE)
+bike_2015Q4 <- read.csv("2015Q4-capitalbikeshare-tripdata.csv", header = TRUE, sep = ",", stringsAsFactors = FALSE)
+bike_2015 <- rbind(bike_2015Q1, bike_2015Q2, bike_2015Q3, bike_2015Q4)
+
+bike_2016Q1 <- read.csv("2016Q1-capitalbikeshare-tripdata.csv", header = TRUE, sep = ",", stringsAsFactors = FALSE)
+bike_2016Q2 <- read.csv("2016Q2-capitalbikeshare-tripdata.csv", header = TRUE, sep = ",", stringsAsFactors = FALSE)
+bike_2016Q3 <- read.csv("2016Q3-capitalbikeshare-tripdata.csv", header = TRUE, sep = ",", stringsAsFactors = FALSE)
+bike_2016Q4 <- read.csv("2016Q4-capitalbikeshare-tripdata.csv", header = TRUE, sep = ",", stringsAsFactors = FALSE)
+bike_2016 <- rbind(bike_2016Q1, bike_2016Q2, bike_2016Q3, bike_2016Q4)
+
+bike_2017Q1 <- read.csv("2017Q1-capitalbikeshare-tripdata.csv", header = TRUE, sep = ",", stringsAsFactors = FALSE)
+bike_2017Q2 <- read.csv("2017Q2-capitalbikeshare-tripdata.csv", header = TRUE, sep = ",", stringsAsFactors = FALSE)
+bike_2017Q3 <- read.csv("2017Q3-capitalbikeshare-tripdata.csv", header = TRUE, sep = ",", stringsAsFactors = FALSE)
+bike_2017Q4 <- read.csv("2017Q4-capitalbikeshare-tripdata.csv", header = TRUE, sep = ",", stringsAsFactors = FALSE)
+bike_2017 <- rbind(bike_2017Q1, bike_2017Q2, bike_2017Q3, bike_2017Q4)
+
+```
+
+<!--
+```{r}
+for (i in 1:nloops){
+ index<-sample(1:ntrains,60)
+ cvtrain.x<-as.matrix(dat.train.x[index,])
+ cvtest.x<-as.matrix(dat.train.x[-index,])
+ cvtrain.y<-dat.train.y[index]
+ cvtest.y<-dat.train.y[-index]
+ 
+ cvfit <- cv.glmnet(cvtrain.x, cvtrain.y, family = "binomial", type.measure = "class") 
+ fit.pred <- predict(cvfit, newx = cvtest.x, type = "response")
+ pred <- prediction(fit.pred[,1], cvtest.y)
+ roc.perf = performance(pred, measure = "tpr", x.measure = "fpr")
+ auc.train <- performance(pred, measure = "auc")
+ auc.train <- auc.train@y.values
+ 
+ cv.aucs[i]<-auc.train[[1]]
+}
+```
+-->
+
+#### b. Cleaning up 2011-2017 data from the website to obtain monthly bike rentals 
+```{r}
+
+bike_cnt_2011 <- data.frame(table(bike_2011$month))
+colnames(bike_cnt_2011) <- c("month", "count")
+bike_cnt_2011$date <- c("2011-01-01","2011-02-01","2011-03-01","2011-04-01","2011-05-01","2011-06-01","2011-07-01","2011-08-01","2011-09-01","2011-10-01","2011-11-01","2011-12-01")
+bike_cnt_2011$Month_Yr <- format(as.Date(bike_cnt_2011$date), "%Y-%m")
+#bike_cnt_2011$Month_Yr <- as.Date(bike_cnt_2011$Month_Yr, "%Y-%m")
+class(bike_cnt_2011$Month_Yr)
+
+bike_2012$date <- as.Date(bike_2012$Start.date)
+#bike_2012$year <- strftime(bike_2012$date, "%Y")
+bike_2012$month <- strftime(bike_2012$date, "%m")
+bike_cnt_2012 <- data.frame(table(bike_2012$month))
+colnames(bike_cnt_2012) <- c("month", "count")
+bike_cnt_2012$date <- c("2012-01-01","2012-02-01","2012-03-01","2012-04-01","2012-05-01","2012-06-01","2012-07-01","2012-08-01","2012-09-01","2012-10-01","2012-11-01","2012-12-01")
+bike_cnt_2012$Month_Yr <- format(as.Date(bike_cnt_2012$date), "%Y-%m")
+#bike_cnt_2012$Month_Yr <- as.Date(bike_cnt_2012$Month_Yr, "%Y-%m")
+class(bike_cnt_2012$Month_Yr)
+
+bike_2013$date <- as.Date(bike_2013$Start.date)
+bike_2013$month <- strftime(bike_2013$date, "%m")
+bike_cnt_2013 <- data.frame(table(bike_2013$month))
+colnames(bike_cnt_2013) <- c("month", "count")
+bike_cnt_2013$date <- c("2013-01-01","2013-02-01","2013-03-01","2013-04-01","2013-05-01","2013-06-01","2013-07-01","2013-08-01","2013-09-01","2013-10-01","2013-11-01","2013-12-01")
+bike_cnt_2013$Month_Yr <- format(as.Date(bike_cnt_2013$date), "%Y-%m")
+class(bike_cnt_2013$Month_Yr)
+
+bike_2014$date <- as.Date(bike_2014$Start.date)
+bike_2014$month <- strftime(bike_2014$date, "%m")
+bike_cnt_2014 <- data.frame(table(bike_2014$month))
+colnames(bike_cnt_2014) <- c("month", "count")
+bike_cnt_2014$date <- c("2014-01-01","2014-02-01","2014-03-01","2014-04-01","2014-05-01","2014-06-01","2014-07-01","2014-08-01","2014-09-01","2014-10-01","2014-11-01","2014-12-01")
+bike_cnt_2014$Month_Yr <- format(as.Date(bike_cnt_2014$date), "%Y-%m")
+class(bike_cnt_2014$Month_Yr)
+
+bike_2015$date <- as.Date(bike_2015$Start.date)
+bike_2015$month <- strftime(bike_2015$date, "%m")
+bike_cnt_2015 <- data.frame(table(bike_2015$month))
+colnames(bike_cnt_2015) <- c("month", "count")
+bike_cnt_2015$date <- c("2015-01-01","2015-02-01","2015-03-01","2015-04-01","2015-05-01","2015-06-01","2015-07-01","2015-08-01","2015-09-01","2015-10-01","2015-11-01","2015-12-01")
+bike_cnt_2015$Month_Yr <- format(as.Date(bike_cnt_2015$date), "%Y-%m")
+class(bike_cnt_2015$Month_Yr)
+
+bike_2016$date <- as.Date(bike_2016$Start.date)
+bike_2016$month <- strftime(bike_2016$date, "%m")
+bike_cnt_2016 <- data.frame(table(bike_2016$month))
+colnames(bike_cnt_2016) <- c("month", "count")
+bike_cnt_2016$date <- c("2016-01-01","2016-02-01","2016-03-01","2016-04-01","2016-05-01","2016-06-01","2016-07-01","2016-08-01","2016-09-01","2016-10-01","2016-11-01","2016-12-01")
+bike_cnt_2016$Month_Yr <- format(as.Date(bike_cnt_2016$date), "%Y-%m")
+class(bike_cnt_2016$Month_Yr)
+
+bike_2017$date <- as.Date(bike_2017$Start.date)
+bike_2017$month <- strftime(bike_2017$date, "%m")
+bike_cnt_2017 <- data.frame(table(bike_2017$month))
+colnames(bike_cnt_2017) <- c("month", "count")
+bike_cnt_2017$date <- c("2017-01-01","2017-02-01","2017-03-01","2017-04-01","2017-05-01","2017-06-01","2017-07-01","2017-08-01","2017-09-01","2017-10-01","2017-11-01","2017-12-01")
+bike_cnt_2017$Month_Yr <- format(as.Date(bike_cnt_2017$date), "%Y-%m")
+class(bike_cnt_2017$Month_Yr)
+```
+
+#### c. Output the data overtime as csv file
+```{r}
+bike_cnt_overtime <- rbind(bike_cnt_2011,bike_cnt_2012,bike_cnt_2013,bike_cnt_2014,bike_cnt_2015,bike_cnt_2016,bike_cnt_2017)
+write.csv(bike_cnt_overtime, file = "bike_cnt_overtime.csv")
+
+```
+
