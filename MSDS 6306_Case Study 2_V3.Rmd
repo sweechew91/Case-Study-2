@@ -1,0 +1,299 @@
+---
+title: "MSDS 6306_Case Study 2"
+author: "Swee K Chew, Mallory Hightower"
+date: "08/15/2018"
+output:
+  html_document: default
+  pdf_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Part 1 - Linear Regression Model & Random Forest(?)
+## Introduction 
+
+Bike Sharing, a system for bike rentals, has become increasingly popular in cities across the United States. Bike sharing enables people to locate a bike, rent the bike for transportation to their destination, and then leave the bike at the destination. This aspect of finding a nearby bike and leaving it when you don’t need it anymore is central to the Bike Sharing model because it makes the bikes extremely convenient for the user. Compared to alternative rideshare options, such as Uber or Lyft, Bike Sharing is less expensive and in large, high traffic cities, bikes often prove to be a faster form of transportation. Bike Sharing is also an environmentally friendly form of transportation and lends itself well to leisurely activities, such as a Sunday bike ride with friends. 
+
+Because the Bike Sharing companies must place a certain number of bikes around cities to remain extremely conventinet to the user, a big question for these companies centers on the demand for the bikes and how many bikes should be placed around the city at any given time. The UCI Machine Learning Repository has Bike Sharing data from 2011 and 2012 that will be used in this analysis. The data was downloaded from the UCI website (see Data Description) and all analysis was conducted in R Studio.
+
+The purpose of this analysis is to examine the Bike Sharing data and build a multivariate linear regression model to predict the number of bikes that will be rented at any given time and therefore estimate bike demand. Overall, this analysis concluded that….
+
+
+## Data Description
+
+The Data was obtained from the UCI Machine Learning Repository^[https://archive.ics.uci.edu/ml/datasets/Bike+Sharing+Dataset]. The dataset contains the daily bike rental information from metro DC's bikeshare system named Capital Bikeshare. The data is collected in 2010 and 2011, and it consists of 731 observations and 16 variables. Table 1 below shows a complete list of variables, the variable type, and the description.
+
+
+## Exploratory Analysis
+
+The Bike Sharing data for 2011-2012 was examined before creating a multiple linear regression model. It was determined that there were no outliers and no transformations were necessary. The researches are assuming the data is independent and the exploratory analysis confirms the equal standard deviations and the normality of the data. The graphs below confirm these assumptions for analysis are met.
+
+Graph 1 shows that the data is normally distributed with no significant outliers. However, this could have been assumed already due to the Central Limit Theorem.
+
+Graph 2 shows an additional confirmation that the data is normally distributed with equal standard deviations. This is because the plot of the residuals is a random cloud centered at 0.
+
+Graph 3 shows additional diagnostics for the data, including the Q-Q plot that demonstrates the normality of the data and the Leverage plot.
+
+The data was also analyzed to see if there were any redundant variables. This was done by calculating a variance covariance matrix, as shown in Image 1. Image 1 shows that there are no redundant, highly related or correlated variables and therefore all variables should be included in the initials model.
+
+To select the multiple linear regression model, three variable selection techniques were employed: stepwise, forward, and backward selection. The models are based off the AIC, the Akaike information criterion, which measures the relative quality of the statistical model for the data. The lower the AIC is the better the model fits the data. The three variable selection techniques resulted in the same result. The R output is below with the AIC output statistic highlighted.
+
+The variable selection methods are very helpful when there are many variables in a dataset. There are only eleven variables in the model from the Bike Sharing dataset, but the variables selection techniques are still useful for quickly eliminating variables that do not add value to the model. The results of the three variable selection techniques all conclude the same result: all the explanatory variables in the dataset are needed to explain the variation in the response variable: the bike count.
+
+The model needed in order to predict or estimate the number bikes being shared at any given time is: 
+
+cnt = 1469.00 + 509.78*season + 2040.70*yr + -38.98*mnth + -518.99*holiday + 69.06*weekday + 120.36*workingday + -610.99*weathersit + 2028.92*temp + 3573.27*atemp + -1018.86*hum + -2557.57*windspeed
+
+Image 5 below shows the Error values of the estimated coefficients of the model, the t-statistics, and the p-values (significant at the 95% CL).
+
+Image 6 above shows the 95% confidence intervals for the estimated coefficients in the model.
+
+Image 7 below shows the summary of the model statistics. The final model has an adjusted R-squared of 0.7972. This means that 79% of the variability in the response variable, the bike count, can be explained by the explanatory variables in the model. This is a high R-squared, which means that this model is a good model for estimating the bike count.
+
+
+
+```{r}
+#mlr with the daily data from 2011 and 2012
+data = read.csv("day.csv", header = TRUE, sep = ",")
+head(data)
+is.data.frame(data)
+data.lm=lm(cnt~season+yr+mnth+holiday+weekday+workingday+weathersit+
+             temp+atemp+hum+windspeed, data = data)
+summary(data.lm)
+plot(data.lm)
+#variance covariancec matrix
+vcov(data.lm)
+#confidence intervals for the model
+confint(data.lm, level=0.95)
+
+#resiuduals plot 
+data.res=resid(data.lm)
+data.res
+plot(data$cnt, data.res, ylab='Residuals', xlab='Count of Bikes Shared', main='Residuals Plot')
+
+#histograms
+historgram <- hist(data.res, breaks = 10, density = 10,
+                   col = "lightgray", xlab = "Count of Bikes Shared", main = "Histogram of Residuals with Normal Curve") 
+xfit <- seq(min(data.res), max(data.res), length = 40) 
+yfit <- dnorm(xfit, mean = mean(data.res), sd = sd(data.res))
+
+#additional diagnostic plots (QQ and leverage)
+layout(matrix(c(1,2,3,4),2,2)) # optional 4 graphs/page 
+plot(data.lm)
+
+#Stepwise Regression
+library(MASS)
+step1 <- stepAIC(data.lm, direction="both")
+step1$anova # display results
+summary(step1)
+
+# Forward Regression
+step2 <- stepAIC(data.lm, direction="forward")
+step2$anova # display results
+summary(step2)
+
+#Backward Regression
+step3 <- stepAIC(data.lm, direction="backward")
+step3$anova # display results
+summary(step3)
+
+#getting the CI and PI for a new point that is not in original data set
+newx=data$cnt
+newx=sort(newx)
+prd_c=predict(data.lm, newdata= data.frame(cnt = newx), interval=c("confidence"), 
+              type = c("response"), level=0.95) 
+prd_c
+newpoint <- data.frame(holiday=NA, cnt=1000)
+predict(data.lm, newpoint, interval="confidence", level = 0.95)
+```
+
+## Conclusion: Summary of analysis and findings. Notes of future work.
+An exploratory analysis was performed on the 2011 and 2012 bike sharing data to ensure the data met the necessary assumptions of normality, equal standard deviations, and independence. After using multiple variable selection techniques, a final model was chosen that best predicts the count of bikes rented at any given time. The final multiple linear regression model contained all the variables in the dataset and had a fairly high adjusted R-squared of 0.7972. The variables in the model used to predict the count of bikes shared are the season, the year, the month, whether it is a US holiday or not, whether it is a weekday or not, whether it is a working day or not, the quantified weathersit, the actual temperature, what the temperature feels like, the humidity, and the wind speed. This model can be very useful to Bike Sharing companies that want to predict or estimate how many bikes should be placed around the city at any given time. This model enables Bike Sharing companies to more accurately predict bike demand, which can lead to a more profitable and efficient Bike Sharing business as well as more responsible use of the bike resources. 
+
+
+## Part 2
+### Forcasting 2017 bike rentals (by month)
+
+In this section, the raw individual bike trip data files are obtained from the data source^[https://s3.amazonaws.com/capitalbikeshare-data/index.html] to perform forecasting analyses. The data are available from 2011 to 2017 in quarterly data files. 
+
+Our research seeks to answer the following questions:
+- Can 2011 to 2016 monthly data be used to predict the bike rental counts in 2017?
+- How close are the predicitions to the actual bike rental counts?
+- Which forecasting method perform the best?
+
+
+For 2011, the trip data are all in one file and for 2012-2017, the data are available in 4 quarterly files. The quarterly files are extracted separately and combined into a yearly data file. 
+
+#### a. Extracting 2011 data from the source data
+```{r}
+bike_2011 <- read.csv("2011-capitalbikeshare-tripdata.csv", header = TRUE, sep = ",", stringsAsFactors = FALSE)
+bike_2011$date <- as.Date(bike_2011$Start.date)
+#bike_2011$year <- strftime(bike_2011$date, "%Y")
+bike_2011$month <- strftime(bike_2011$date, "%m")
+
+```
+
+#### b. Extracting 2012-2017 data from the source data
+```{r}
+bike_2012Q1 <- read.csv("2012Q1-capitalbikeshare-tripdata.csv", header = TRUE, sep = ",", stringsAsFactors = FALSE)
+bike_2012Q2 <- read.csv("2012Q2-capitalbikeshare-tripdata.csv", header = TRUE, sep = ",", stringsAsFactors = FALSE)
+bike_2012Q3 <- read.csv("2012Q3-capitalbikeshare-tripdata.csv", header = TRUE, sep = ",", stringsAsFactors = FALSE)
+bike_2012Q4 <- read.csv("2012Q4-capitalbikeshare-tripdata.csv", header = TRUE, sep = ",", stringsAsFactors = FALSE)
+bike_2012 <- rbind(bike_2012Q1, bike_2012Q2, bike_2012Q3, bike_2012Q4)
+
+bike_2013Q1 <- read.csv("2013Q1-capitalbikeshare-tripdata.csv", header = TRUE, sep = ",", stringsAsFactors = FALSE)
+bike_2013Q2 <- read.csv("2013Q2-capitalbikeshare-tripdata.csv", header = TRUE, sep = ",", stringsAsFactors = FALSE)
+bike_2013Q3 <- read.csv("2013Q3-capitalbikeshare-tripdata.csv", header = TRUE, sep = ",", stringsAsFactors = FALSE)
+bike_2013Q4 <- read.csv("2013Q4-capitalbikeshare-tripdata.csv", header = TRUE, sep = ",", stringsAsFactors = FALSE)
+bike_2013 <- rbind(bike_2013Q1, bike_2013Q2, bike_2013Q3, bike_2013Q4)
+
+bike_2014Q1 <- read.csv("2014Q1-capitalbikeshare-tripdata.csv", header = TRUE, sep = ",", stringsAsFactors = FALSE)
+bike_2014Q2 <- read.csv("2014Q2-capitalbikeshare-tripdata.csv", header = TRUE, sep = ",", stringsAsFactors = FALSE)
+bike_2014Q3 <- read.csv("2014Q3-capitalbikeshare-tripdata.csv", header = TRUE, sep = ",", stringsAsFactors = FALSE)
+bike_2014Q4 <- read.csv("2014Q4-capitalbikeshare-tripdata.csv", header = TRUE, sep = ",", stringsAsFactors = FALSE)
+bike_2014 <- rbind(bike_2014Q1, bike_2014Q2, bike_2014Q3, bike_2014Q4)
+
+bike_2015Q1 <- read.csv("2015Q1-capitalbikeshare-tripdata.csv", header = TRUE, sep = ",", stringsAsFactors = FALSE)
+bike_2015Q2 <- read.csv("2015Q2-capitalbikeshare-tripdata.csv", header = TRUE, sep = ",", stringsAsFactors = FALSE)
+bike_2015Q3 <- read.csv("2015Q3-capitalbikeshare-tripdata.csv", header = TRUE, sep = ",", stringsAsFactors = FALSE)
+bike_2015Q4 <- read.csv("2015Q4-capitalbikeshare-tripdata.csv", header = TRUE, sep = ",", stringsAsFactors = FALSE)
+bike_2015 <- rbind(bike_2015Q1, bike_2015Q2, bike_2015Q3, bike_2015Q4)
+
+bike_2016Q1 <- read.csv("2016Q1-capitalbikeshare-tripdata.csv", header = TRUE, sep = ",", stringsAsFactors = FALSE)
+bike_2016Q2 <- read.csv("2016Q2-capitalbikeshare-tripdata.csv", header = TRUE, sep = ",", stringsAsFactors = FALSE)
+bike_2016Q3 <- read.csv("2016Q3-capitalbikeshare-tripdata.csv", header = TRUE, sep = ",", stringsAsFactors = FALSE)
+bike_2016Q4 <- read.csv("2016Q4-capitalbikeshare-tripdata.csv", header = TRUE, sep = ",", stringsAsFactors = FALSE)
+bike_2016 <- rbind(bike_2016Q1, bike_2016Q2, bike_2016Q3, bike_2016Q4)
+
+bike_2017Q1 <- read.csv("2017Q1-capitalbikeshare-tripdata.csv", header = TRUE, sep = ",", stringsAsFactors = FALSE)
+bike_2017Q2 <- read.csv("2017Q2-capitalbikeshare-tripdata.csv", header = TRUE, sep = ",", stringsAsFactors = FALSE)
+bike_2017Q3 <- read.csv("2017Q3-capitalbikeshare-tripdata.csv", header = TRUE, sep = ",", stringsAsFactors = FALSE)
+bike_2017Q4 <- read.csv("2017Q4-capitalbikeshare-tripdata.csv", header = TRUE, sep = ",", stringsAsFactors = FALSE)
+bike_2017 <- rbind(bike_2017Q1, bike_2017Q2, bike_2017Q3, bike_2017Q4)
+
+```
+
+Next, the monthly bike rental counts are obtained from the yearly data sets and then binded into a overtime data for further analyses. 
+
+#### b. Cleaning up 2011-2017 data from the website to obtain monthly bike rentals 
+```{r}
+bike_2011$date <- as.Date(bike_2011$Start.date)
+bike_2011$month <- strftime(bike_2011$date, "%m")
+bike_cnt_2011 <- data.frame(table(bike_2011$month))
+colnames(bike_cnt_2011) <- c("month", "count")
+bike_cnt_2011$date <- c("2011-01-01","2011-02-01","2011-03-01","2011-04-01","2011-05-01","2011-06-01","2011-07-01","2011-08-01","2011-09-01","2011-10-01","2011-11-01","2011-12-01")
+
+bike_2012$date <- as.Date(bike_2012$Start.date)
+bike_2012$month <- strftime(bike_2012$date, "%m")
+bike_cnt_2012 <- data.frame(table(bike_2012$month))
+colnames(bike_cnt_2012) <- c("month", "count")
+bike_cnt_2012$date <- c("2012-01-01","2012-02-01","2012-03-01","2012-04-01","2012-05-01","2012-06-01","2012-07-01","2012-08-01","2012-09-01","2012-10-01","2012-11-01","2012-12-01")
+
+bike_2013$date <- as.Date(bike_2013$Start.date)
+bike_2013$month <- strftime(bike_2013$date, "%m")
+bike_cnt_2013 <- data.frame(table(bike_2013$month))
+colnames(bike_cnt_2013) <- c("month", "count")
+bike_cnt_2013$date <- c("2013-01-01","2013-02-01","2013-03-01","2013-04-01","2013-05-01","2013-06-01","2013-07-01","2013-08-01","2013-09-01","2013-10-01","2013-11-01","2013-12-01")
+
+bike_2014$date <- as.Date(bike_2014$Start.date)
+bike_2014$month <- strftime(bike_2014$date, "%m")
+bike_cnt_2014 <- data.frame(table(bike_2014$month))
+colnames(bike_cnt_2014) <- c("month", "count")
+bike_cnt_2014$date <- c("2014-01-01","2014-02-01","2014-03-01","2014-04-01","2014-05-01","2014-06-01","2014-07-01","2014-08-01","2014-09-01","2014-10-01","2014-11-01","2014-12-01")
+
+bike_2015$date <- as.Date(bike_2015$Start.date)
+bike_2015$month <- strftime(bike_2015$date, "%m")
+bike_cnt_2015 <- data.frame(table(bike_2015$month))
+colnames(bike_cnt_2015) <- c("month", "count")
+bike_cnt_2015$date <- c("2015-01-01","2015-02-01","2015-03-01","2015-04-01","2015-05-01","2015-06-01","2015-07-01","2015-08-01","2015-09-01","2015-10-01","2015-11-01","2015-12-01")
+
+bike_2016$date <- as.Date(bike_2016$Start.date)
+bike_2016$month <- strftime(bike_2016$date, "%m")
+bike_cnt_2016 <- data.frame(table(bike_2016$month))
+colnames(bike_cnt_2016) <- c("month", "count")
+bike_cnt_2016$date <- c("2016-01-01","2016-02-01","2016-03-01","2016-04-01","2016-05-01","2016-06-01","2016-07-01","2016-08-01","2016-09-01","2016-10-01","2016-11-01","2016-12-01")
+
+bike_2017$date <- as.Date(bike_2017$Start.date)
+bike_2017$month <- strftime(bike_2017$date, "%m")
+bike_cnt_2017 <- data.frame(table(bike_2017$month))
+colnames(bike_cnt_2017) <- c("month", "count")
+bike_cnt_2017$date <- c("2017-01-01","2017-02-01","2017-03-01","2017-04-01","2017-05-01","2017-06-01","2017-07-01","2017-08-01","2017-09-01","2017-10-01","2017-11-01","2017-12-01")
+
+bike_cnt <- rbind(bike_cnt_2011, bike_cnt_2012, bike_cnt_2013, bike_cnt_2014, bike_cnt_2015, bike_cnt_2016, bike_cnt_2017)
+
+```
+
+## Forecasting
+
+There are three components to a time series - trend, seasonal and random activity that is not explained by the trend or the seasonal value. In an additive model, the seasonal and random fluctuations are roughly constant in size over time. In a multiplicative time series, the three components multiple together to make the time series. The size of the seasonal and random fluctuations increase with the level of the time series. 
+Looking at the initial time series plot, the data suggested that it's a multiplicative time series model with seasonal component (seasonality). The rental counts drop at the beginning and at the end of each year. 
+
+
+
+```{r}
+library(fpp2)
+library(xts)
+
+bike_cnt_ts <- bike_cnt[, c(3,2)]
+bike_cnt_ts$date <- as.Date(bike_cnt_ts$date)
+bike_cnt_xts <- xts(bike_cnt_ts[,-1], order.by=bike_cnt_ts$date)
+bike_cnt_xts
+autoplot(bike_cnt_xts, xlab = "Year", ylab = "Bike Count", main = "Rental Bike Counts Over Time")
+```
+
+#### today's code
+```{r}
+bike_ts <- ts(bike_cnt_ts[,-1], frequency=12, start=c(2011,1), end=c(2017,12))
+bike_timeseries <- ts(bike_cnt_ts[,-1], frequency=12, start=c(2011,1), end=c(2016,12))
+fit1 <- hw(bike_timeseries, seasonal = "additive", h=12)
+fit2 <- hw(bike_timeseries, seasonal = "multiplicative", h=12)
+fit3 <- hw(bike_timeseries, seasonal = "multiplicative", damped = TRUE, h=12)
+
+autoplot(bike_ts) +
+autolayer(fit1, series="HW Additive forecasts", PI=FALSE) +
+autolayer(fit2, series="HW Multiplicative forecasts",PI=FALSE) + 
+autolayer(fit3, series="HW Damped Multiplicative forecasts",PI=FALSE) +
+xlab("Year") +
+ylab("Rental Bike Count") +  ggtitle("Rental Bike Counts Over Time") +
+guides(colour=guide_legend(title="Forecast"))
+
+#plot(bike_timeseries, ylab = "Rental Bike Count", main = "Rental Bike Count Over time", xlim = c(2011,2019), ylim = c(30000,500000))
+lines(fitted(fit1), col = "blue", lty = 2)
+lines(fitted(fit2), col = "red", lty = 2)
+lines(fitted(fit3), col = "green", lty = 2)
+lines(fit1$mean, type = "o", col = "blue")
+lines(fit2$mean, type = "o", col = "red")
+lines(fit3$mean, type = "o", col = "green")
+legend("topleft", lty = 1, col = c(1,"blue","red","green"), c("data", "Holt-Winters' Additive", "Holt-Winters' Multiplicative", "Holt-Winters' Damped Multiplicative"))
+states <- cbind(fit1$model$states[, 1:3], fit2$model$states[, 1:3])
+colnames(states) <- c("level", "slope", "seasonal", "level", "slope", "seasonal")
+plot(states, xlab = "Year")
+fit1$model$states[,1:3]
+fitted(fit1)
+fit1$mean
+mean(fit1$residuals)
+mean(fit2$residuals)
+sd(fit1$residuals)
+sd(fit2$residuals)
+sd(fit3$residuals)
+fit1$model
+fit2$model
+fit3$model
+bike_components <- decompose(bike_timeseries)
+plot(bike_components)
+
+```
+
+#### b. Subset the dataset to only contain information after 1990
+```{r}
+temp_data <- window(bike_cnt_xts, start = 2011, end = 2018)
+```
+
+
+#### e. Compare the AICc of the SES and Holt's models
+
+The AICc of the SES and Holt's models are 141.53 and 145.59, respectively. For this particular dataset, the SES model seems to predict better than the damped Holt's model. 
+
+
